@@ -89,7 +89,7 @@ void drawcircle()
   //u8g2.drawCircle(x, y, r);
 }
 
-Cell moveplayertris(Cell gamespace[3][3], int center[3][3][2])
+void moveplayertris(Cell gamespace[3][3], int center[3][3][2])
 {
   if(gamespace[coordinates.y][coordinates.x] == EMPTY)                                                            //check if the cell in the current cursor position is already displayng something
   {
@@ -116,9 +116,8 @@ Cell moveplayertris(Cell gamespace[3][3], int center[3][3][2])
   }
   if (digitalRead(ent) == LOW && gamespace[coordinates.y][coordinates.x] == EMPTY)                                //If ENTER is pressed and the cell is empty:
   {
-    return drawx(gamespace, center);                                                                              // place the char x and return the updated cell value
-  }
-  return gamespace[coordinates.y][coordinates.x];                                                                 // If no valid action occurred, return the current state of cell
+    drawx(gamespace, center);                                                                                     // place the char x and return the updated cell value
+  }                                                                 
 }
 
 Cell drawx(Cell gamespace[3][3], int center[3][3][2])
@@ -200,7 +199,7 @@ void loop()
       displaytris(gamespace, center);
       while(gamestatus)
       {
-       gamespace[coordinates.y][coordinates.x] = moveplayertris(gamespace, center);
+        moveplayertris(gamespace, center);
       }
 
       break;
@@ -221,5 +220,6 @@ void loop()
                                                                         |
                                                                         v
                                                                       Y (0,63)*/
+
 
 

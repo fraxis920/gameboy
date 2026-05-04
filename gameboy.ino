@@ -15,6 +15,19 @@ enum mod       //enumerazioni stati
   tris,
   dino,
 };
+
+enum Cell {
+  EMPTY,
+  X,
+  O
+};
+
+struct pintcursor {
+  int x;
+  int y;
+};
+pintcursor coordinates = {0, 0};
+
 mod modalita = menu;
 
 U8G2_SSD1306_128X64_NONAME_F_SW_I2C u8g2(U8G2_R0, 9, 8, U8X8_PIN_NONE);   //inizializazione pin I2C
@@ -23,13 +36,13 @@ int cord[3][2]={{5, 10}, {5, 30}, {5, 40}};  //matrice cordinate
 
 void drawline(int a)
 {
+  u8g2.clearBuffer();
    switch(a)
-   {
-    case 1: u8g2.drawStr(cord[1][0]+32, cord[1][1], "<---"); u8g2.setDrawColor(0); u8g2.drawStr(cord[2][0]+40, cord[2][1], "<---"); break;
-    case 2: u8g2.drawStr(cord[2][0]+40, cord[2][1], "<---"); u8g2.setDrawColor(0); u8g2.drawStr(cord[1][0]+32, cord[1][1], "<---"); break;
-    default: break;
+   {   
+    case 0: displaymenu(); u8g2.drawStr(cord[1][0]+35, cord[1][1], "<---");  break;
+    case 1: displaymenu(); u8g2.drawStr(cord[2][0]+45, cord[2][1], "<---");  break;
    }
-   u8g2.setDrawColor(1);
+  u8g2.sendBuffer();
 }
 
 void displaymenu()
@@ -39,11 +52,10 @@ void displaymenu()
   u8g2.drawStr(cord[0][0], cord[0][1], "- menu giochi -");
   u8g2.drawStr(cord[1][0], cord[1][1], "1) tris");
   u8g2.drawStr(cord[2][0], cord[2][1], "2) dino");
-  u8g2.drawStr(cord[1][0]+32, cord[1][1], "<---");
   u8g2.sendBuffer();
 }
 
-void displaytris()
+void displaytris(Cell gamespace[3][3], int center[3][3][2])
 {
   u8g2.clearBuffer();
 
@@ -53,10 +65,77 @@ void displaytris()
 
   // linee orizzontali (3 righe)
   u8g2.drawLine(0, 21, 127, 21);
-  u8g2.drawLine(0, 42, 127, 42);
-
-  u8g2.sendBuffer();
+  u8g2.drawLine(0, 42, 127, 42);  
+  for (int r = 0; r < 3; r++) 
+  {
+  for (int c = 0; c < 3; c++) 
+  {
+    if (gamespace[r][c] == X) 
+    {
+      u8g2.drawStr(center[r][c][0], center[r][c][1], "x");
+    }
+    if (gamespace[r][c] == O) 
+    {
+      u8g2.drawStr(center[r][c][0], center[r][c][1], "o");
+    }
+  }
 }
+  u8g2.sendBuffer();
+
+}
+
+void drawcircle()
+{
+  //u8g2.drawCircle(x, y, r);
+}
+
+Cell moveplayertris(Cell gamespace[3][3], int center[3][3][2])
+{
+  if(gamespace[coordinates.y][coordinates.x] == EMPTY)                                                            //check if the cell in the current cursor position is already displayng something
+  {
+      u8g2.drawStr(center[coordinates.y][coordinates.x][0], center[coordinates.y][coordinates.x][1], "x");        //drawing the char x in the cursor position
+      u8g2.sendBuffer();                                                                                          // send buffer to display (render cursor)
+  }                                                                                                               // redraw the gamespace (clears and refreshes screen)
+      displaytris(gamespace, center);
+
+  if(digitalRead(su) == LOW && coordinates.y != 0)                                                                // Move cursor UP if button is pressed and not at top boundary 
+  {   
+      coordinates.y--;
+  }
+  if(digitalRead(giu) == LOW && coordinates.y != 2)                                                               // Move cursor DOWN if button is pressed and not at bottom boundary
+  {
+    coordinates.y++;
+  }
+  if(digitalRead(dx) == LOW && coordinates.x != 2)                                                                // Move cursor RIGHT if button is pressed and not at right boundary
+  {
+    coordinates.x++;
+  }
+  if(digitalRead(sx) == LOW && coordinates.x != 0)                                                                //Move cursor LEFT if button is pressed and not at left boundary
+  {
+    coordinates.x--;
+  }
+  if (digitalRead(ent) == LOW && gamespace[coordinates.y][coordinates.x] == EMPTY)                                //If ENTER is pressed and the cell is empty:
+  {
+    return drawx(gamespace, center);                                                                              // place the char x and return the updated cell value
+  }
+  return gamespace[coordinates.y][coordinates.x];                                                                 // If no valid action occurred, return the current state of cell
+}
+
+Cell drawx(Cell gamespace[3][3], int center[3][3][2])
+{
+  // Draws an "X" on the OLED display at the current cursor position.
+  // center[y][x][0] = X pixel coordinate
+  // center[y][x][1] = Y pixel coordinate
+
+  u8g2.drawStr(center[coordinates.y][coordinates.x][0], center[coordinates.y][coordinates.x][1], "x");            //drawing the char x in the cursor position                                     
+ 
+  u8g2.sendBuffer();                                                                                              // update the display (render to screen)
+
+  gamespace[coordinates.y][coordinates.x] = X;                                                                    // Update the logical game grid and mark the current cell in gamespace as occupied by X
+
+  return gamespace[coordinates.y][coordinates.x];                                                                 // Return the value of the updated cell
+}
+
 
 void setup() 
 {
@@ -75,21 +154,20 @@ void loop()
   switch(modalita)
   {
     case menu:
-
-      displaymenu();
+    {
       drawline(i);
 
       if (digitalRead(su) == LOW)
       {
         i--;
-        if (i < 0) i = 1;
+        if (i < 0) i = 0;
         delay(150);
       }
 
       if (digitalRead(giu) == LOW)
       {
         i++;
-        if (i > 1) i = 0;
+        if (i > 1) i = 1;
         delay(150);
       }
 
@@ -101,15 +179,47 @@ void loop()
       }
 
       break;
+    }
 
     case tris:
-      displaytris();
+    {
+      
+      bool gamestatus=true;
+      Cell gamespace[3][3] = 
+      {
+      {EMPTY, EMPTY, EMPTY},
+      {EMPTY, X, EMPTY},
+      {EMPTY, O, EMPTY}
+      };                
+      int center[3][3][2] = 
+      {
+      { {21,10}, {63,10}, {105,10} },
+      { {21,32}, {63,32}, {105,32} },
+      { {21,53}, {63,53}, {105,53} }
+      };
+      displaytris(gamespace, center);
+      while(gamestatus)
+      {
+       gamespace[coordinates.y][coordinates.x] = moveplayertris(gamespace, center);
+      }
 
       break;
+    }
 
     case dino:
+    {
       // qui chiamerai gioco dino
       break;
+    }
   }
 }
+
+                                                                      /*(0,0) ---------------------> X (127,0)
+                                                                        |
+                                                                        |
+                                                                        |
+                                                                        |
+                                                                        v
+                                                                      Y (0,63)*/
+
 

@@ -55,7 +55,7 @@ void displaymenu()
   u8g2.sendBuffer();
 }
 
-void displaytris(Cell gamespace[3][3], int center[3][3][2])
+void displaytris(Cell gamespace[3][3], const int center[3][3][2])
 {
   u8g2.clearBuffer();
 
@@ -68,29 +68,27 @@ void displaytris(Cell gamespace[3][3], int center[3][3][2])
   u8g2.drawLine(0, 42, 127, 42);  
   for (int r = 0; r < 3; r++) 
   {
-  for (int c = 0; c < 3; c++) 
-  {
-    if (gamespace[r][c] == X) 
+    for (int c = 0; c < 3; c++) 
     {
-      u8g2.drawStr(center[r][c][0], center[r][c][1], "x");
-    }
-    if (gamespace[r][c] == O) 
-    {
-      u8g2.drawStr(center[r][c][0], center[r][c][1], "o");
+      if (gamespace[r][c] == X) 
+      {
+        u8g2.drawStr(center[r][c][0], center[r][c][1], "x");
+      }
+      if (gamespace[r][c] == O) 
+      {
+        u8g2.drawStr(center[r][c][0], center[r][c][1], "o");
+      }
     }
   }
-}
   u8g2.sendBuffer();
 
 }
 
-void drawcircle()
-{
-  //u8g2.drawCircle(x, y, r);
-}
 
-void moveplayertris(Cell gamespace[3][3], int center[3][3][2])
+void movePlayertris(Cell gamespace[3][3], const int center[3][3][2])
 {
+  coordinates.y = 0;
+  coordinates.x = 0;
   if(gamespace[coordinates.y][coordinates.x] == EMPTY)                                                            //check if the cell in the current cursor position is already displayng something
   {
       u8g2.drawStr(center[coordinates.y][coordinates.x][0], center[coordinates.y][coordinates.x][1], "x");        //drawing the char x in the cursor position
@@ -120,7 +118,7 @@ void moveplayertris(Cell gamespace[3][3], int center[3][3][2])
   }                                                                 
 }
 
-Cell drawx(Cell gamespace[3][3], int center[3][3][2])
+Cell drawx(Cell gamespace[3][3], const int center[3][3][2])
 {
   // Draws an "X" on the OLED display at the current cursor position.
   // center[y][x][0] = X pixel coordinate
@@ -134,6 +132,130 @@ Cell drawx(Cell gamespace[3][3], int center[3][3][2])
 
   return gamespace[coordinates.y][coordinates.x];                                                                 // Return the value of the updated cell
 }
+
+void moveBot(Cell gamespace[3][3], const int center[3][3][2])
+{
+  int emptyCoordinates[2] = {-1, -1};                                                                              // Stores the selected empty cell coordinates (y, x)
+  const int errore = 5;                                                                                            // Chance of making a mistake in percentage logic
+  const int winLines[8][3][2] =                                                                                    // All possible winning combinations (rows, columns, diagonals)
+  {
+    {{0,0}, {0,1}, {0,2}},  // row 1
+    {{1,0}, {1,1}, {1,2}},  // row 2
+    {{2,0}, {2,1}, {2,2}},  // row 3
+
+    {{0,0}, {1,0}, {2,0}},  // column 1
+    {{0,1}, {1,1}, {2,1}},  // column 2
+    {{0,2}, {1,2}, {2,2}},  // column 3
+
+    {{0,0}, {1,1}, {2,2}},  // diagonal 1
+    {{0,2}, {1,1}, {2,0}}   // diagonal 2
+  };
+  for(int i=0; i<8; i++)                                                                                            //Iterate through all possible winning lines  
+  {
+    // Extract coordinates of the 3 cells in the current line
+    int x1 = winLines[i][0][1];                           
+    int y1 = winLines[i][0][0];
+
+    int x2 = winLines[i][1][1];
+    int y2 = winLines[i][1][0];
+
+    int x3 = winLines[i][2][1];
+    int y3 = winLines[i][2][0];
+
+    // Counters for X and O in the current line
+    int countX = 0;
+    int countO = 0;
+
+    // Read Cell gamespace values
+    Cell c1 = gamespace[y1][x1];
+    Cell c2 = gamespace[y2][x2];
+    Cell c3 = gamespace[y3][x3];
+
+    // Evaluate first cell
+    if (c1 == X)
+    {
+      countX++;
+    }
+    else if (c1 == EMPTY)
+    {
+      emptyCoordinates[0] = y1;
+      emptyCoordinates[1] = x1;
+    }
+    else if (c1 == O) 
+    {
+      countO++;
+    }
+
+    // Evaluate second cell
+    if (c2 == X)
+    {
+      countX++;
+    }
+    else if (c2 == EMPTY)
+    {
+      emptyCoordinates[0] = y2;
+      emptyCoordinates[1] = x2;
+    }
+    else if (c2 == O) 
+    {
+      countO++;
+    }
+
+    // Evaluate third cell
+    if (c3 == X)
+    {
+      countX++;
+    }
+    else if (c3 == EMPTY)
+    {
+      emptyCoordinates[0] = y3;
+      emptyCoordinates[1] = x3;
+    }
+    else if (c3 == O) 
+    {
+      countO++;
+    }
+    if (countO == 2 && emptyCoordinates[0] != -1 && random(0, 101) >errore)                                                 //If two O in a line and one empty cell, place O in the EMPTY spot(win move)
+    {
+      drawO(emptyCoordinates, center);
+      gamespace[emptyCoordinates[0]][emptyCoordinates[1]] = O;
+      return;
+    }
+    else if (countX == 2 && emptyCoordinates[0] != -1 && random(0, 101) >errore)                                            //If two X in a line and one empty cell, place O in the EMPTY spot (counter move)
+    {
+      drawO(emptyCoordinates, center);
+      gamespace[emptyCoordinates[0]][emptyCoordinates[1]] = O;
+      return;
+    }
+  }
+      while(true)                                                                                                           // If no strategic move is found, choose a random empty cell
+      {
+        int y = random(0,3);
+        int x = random(0,3);
+        if(gamespace[y][x] == EMPTY)
+        {
+          emptyCoordinates[0] = y;
+          emptyCoordinates[1] = x;
+          drawO(emptyCoordinates, center);
+          gamespace[emptyCoordinates[0]][emptyCoordinates[1]] = O;
+          return;
+        }
+      } 
+}
+
+void drawO(int emptyCoordinates[2], const int center[3][3][2])
+{
+  // Draws an "O" on the OLED display at the current cursor position.
+  // center[y][x][0] = X pixel coordinate
+  // center[y][x][1] = Y pixel coordinate
+
+  u8g2.drawStr(center[emptyCoordinates[0]][emptyCoordinates[1]][0], center[emptyCoordinates[0]][emptyCoordinates[1]][1], "O");                                             //draw o in given cordinates
+  u8g2.sendBuffer();                                                                                                                                                       //send buffer to oled display                                                                                                                                                
+                                                               
+}
+
+
+
 
 
 void setup() 
@@ -190,7 +312,7 @@ void loop()
       {EMPTY, X, EMPTY},
       {EMPTY, O, EMPTY}
       };                
-      int center[3][3][2] = 
+      const int center[3][3][2] = 
       {
       { {21,10}, {63,10}, {105,10} },
       { {21,32}, {63,32}, {105,32} },
@@ -199,7 +321,8 @@ void loop()
       displaytris(gamespace, center);
       while(gamestatus)
       {
-        moveplayertris(gamespace, center);
+        movePlayertris(gamespace, center);
+        moveBot(gamespace, center);
       }
 
       break;

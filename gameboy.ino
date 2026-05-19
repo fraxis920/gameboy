@@ -678,7 +678,6 @@ void loop()
       }
       u8g2.clearBuffer();
       u8g2.drawStr(30,32, "GAME OVER");
-      u8g2.drawStr(45,53, "press A");
       u8g2.sendBuffer();
       delay(2000);
       Mod = menu;

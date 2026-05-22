@@ -29,6 +29,7 @@ enum Tris     //enum tris game stadium -- enum degli stadi del gioco tris
   Playing,
   Won,
   GameOver,
+  draw,
 };
 
 
@@ -164,9 +165,9 @@ void displaytris(Cell gamespace[3][3], const int center[3][3][2]) // Draws tris 
 }
 
 
-void movePlayertris(Cell gamespace[3][3], const int center[3][3][2]) // Player move in tris -- Movimento giocatore nel tris
+void movePlayertris(Cell gamespace[3][3], const int center[3][3][2], Tris &State) // Player move in tris -- Movimento giocatore nel tris
 {
-  while(true) // Infinite loop until move is made -- Loop infinito finché non si gioca
+  while(State == Playing) // Infinite loop until move is made -- Loop infinito finché non si gioca
   {
     if(gamespace[coordinates.y][coordinates.x] == EMPTY) // Checks if current cell is empty -- Controlla se la cella è vuota
     {
@@ -206,7 +207,7 @@ void movePlayertris(Cell gamespace[3][3], const int center[3][3][2]) // Player m
 
 
 // Rule-based bot AI for tic-tac-toe -- IA a regole per tris
-void moveBot(Cell gamespace[3][3], const int center[3][3][2])
+void moveBot(Cell gamespace[3][3], const int center[3][3][2], Tris &State)
 {
   int emptyCoordinates[2] = {-1, -1}; // Selected empty cell (y, x) -- Cella vuota selezionata (y, x)
   const int errore = 5; // Mistake probability (%) -- Probabilità di errore (%)
@@ -267,7 +268,7 @@ void moveBot(Cell gamespace[3][3], const int center[3][3][2])
     }
   }
 
-  while(true) // Random move -- Mossa casuale 
+  while(State == Playing) // Random move -- Mossa casuale 
   {
     int y = random(0,3);
     int x = random(0,3);
@@ -283,6 +284,19 @@ void moveBot(Cell gamespace[3][3], const int center[3][3][2])
 // Checks if someone has won the game -- Controlla se qualcuno ha vinto
 Tris ceckwinner(Cell gamespace[3][3])
 {
+  bool Full = true;
+  for (int r = 0; r < 3; r++) // Row loop -- Ciclo righe
+  {
+    for (int c = 0; c < 3; c++) // Column loop -- Ciclo colonne
+    {
+      if(gamespace[r][c] == EMPTY) 
+      {
+      Full=false;
+      break;
+      }
+    }
+  }
+  if(Full) return draw;
   const int winLines[8][3][2] = // Winning combinations -- Combinazioni vincenti
   {
     {{0,0}, {0,1}, {0,2}},
@@ -640,17 +654,19 @@ void loop()
       displaytris(gamespace, center);
       while(State == Playing)
       {
-        movePlayertris(gamespace, center);
+        movePlayertris(gamespace, center, State);
         State = ceckwinner(gamespace);
-        moveBot(gamespace, center);
+        moveBot(gamespace, center, State);
         State = ceckwinner(gamespace);
         delay(100);
       }
       u8g2.clearBuffer();
       if(State == Won) u8g2.drawStr(center[1][0][1],center[1][0][0]+10, "You won");     
-      else u8g2.drawStr(center[1][0][1],center[1][0][0]+10, "You lose");
+      else if (State == GameOver)u8g2.drawStr(center[1][0][1],center[1][0][0]+10, "You lose");
+      else u8g2.drawStr(center[1][0][1]+20,center[1][0][0]+10, "Draw");
       u8g2.sendBuffer();
-      delay(1000);
+      delay(2000);
+      Mod = menu;
       break;
     }
 

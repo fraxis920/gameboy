@@ -165,16 +165,20 @@ void displaytris(Cell gamespace[3][3], const int center[3][3][2]) // Draws tris 
 }
 
 
-void movePlayertris(Cell gamespace[3][3], const int center[3][3][2], Tris &State) // Player move in tris -- Movimento giocatore nel tris
+void movePlayertris(Cell gamespace[3][3], const int center[3][3][2], Tris &State, unsigned long &Lastblink) // Player move in tris -- Movimento giocatore nel tris
 {
+  const int Blinkspeed = 500; //blink speed -- velocita del lampeggio
   while(State == Playing) // Infinite loop until move is made -- Loop infinito finché non si gioca
   {
     if(gamespace[coordinates.y][coordinates.x] == EMPTY) // Checks if current cell is empty -- Controlla se la cella è vuota
     {
-        u8g2.drawStr(center[coordinates.y][coordinates.x][0], center[coordinates.y][coordinates.x][1], "x"); // Draw X cursor -- Disegna X nel cursore
-        u8g2.sendBuffer(); // Refresh display -- Aggiorna display
+        if (millis()-Lastblink >= Blinkspeed )  //blink time separated from the game speed logic -- lampeggio separato dalla logica della velocita del gioco
+        {
+          Lastblink=millis();  //update 
+          u8g2.drawStr(center[coordinates.y][coordinates.x][0], center[coordinates.y][coordinates.x][1], "x"); // Draw X cursor -- Disegna X nel cursore
+          u8g2.sendBuffer(); // Refresh display -- Aggiorna display
+        }
     }
-
     displaytris(gamespace, center); // Redraw grid -- Ridisegna la griglia
 
     if(digitalRead(up) == LOW && coordinates.y != 0) // Move up if possible -- Muove su se possibile
@@ -637,7 +641,7 @@ void loop()
 
     case tris:
     {
-      
+      static unsigned long Lastblink;
       Tris State = Playing;
       Cell gamespace[3][3] = 
       {
@@ -654,7 +658,7 @@ void loop()
       displaytris(gamespace, center);
       while(State == Playing)
       {
-        movePlayertris(gamespace, center, State);
+        movePlayertris(gamespace, center, State, Lastblink);
         State = ceckwinner(gamespace);
         moveBot(gamespace, center, State);
         State = ceckwinner(gamespace);
